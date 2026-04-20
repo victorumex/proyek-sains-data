@@ -15,7 +15,7 @@ berlabel dengan anotasi bounding box. Dataset dipilih berdasarkan ketersediaan l
 citra yang memadai, serta kemudahan akses dan manajemen augmentasi data secara langsung melalui 
 platform tersebut. 
 Karakteristik dataset: 
-  • Sumber: Roboflow Universe (dataset publik berlabel karies gigi) 
-  • Deskripsi: Dataset yang digunakan untuk pelatihan berupa citra gigi dengan bounding box yang 
-menunjukkan lokasi karies pada gigi, terdapat 2 kelas yaitu karies dan non-karies. 
-  • Format anotasi: YOLO format (.txt bounding box) 
+1. Sumber: Roboflow Universe (dataset publik berlabel karies gigi)
+2. Deskripsi: Dataset yang digunakan untuk pelatihan berupa citra gigi dengan bounding box yang 
+menunjukkan lokasi karies pada gigi, terdapat 2 kelas yaitu karies dan non-karies.
+3. Format anotasi: YOLO format (.txt bounding box) 
