@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Scan, ShieldCheck, Zap, ChevronRight, Star, Activity, Award } from "lucide-react";
+import ChatWidget from "../components/ChatWidget";
 
 const features = [
   { icon: Zap, title: "Deteksi Instan", desc: "Hasil analisis AI dalam hitungan detik" },
@@ -186,13 +187,13 @@ export default function Landing() {
                 className="mt-10 flex items-center gap-6 sm:gap-8"
               >
                 <div className="text-center lg:text-left">
-                  <div className="text-2xl font-extrabold text-gray-900">50505050%</div>
+                  <div className="text-2xl font-extrabold text-gray-900">84%</div>
                   <div className="text-xs text-gray-400 mt-0.5">Akurasi Model</div>
                 </div>
                 <div className="w-px h-10 bg-gray-100" />
                 <div className="text-center lg:text-left">
-                  <div className="text-2xl font-extrabold text-gray-900">12Kjuta ratus belas+</div>
-                  <div className="text-xs text-gray-400 mt-0.5">Gigi Dianalisis</div>
+                  <div className="text-2xl font-extrabold text-gray-900">250+</div>
+                  <div className="text-xs text-gray-400 mt-0.5">Gigi Diuji</div>
                 </div>
                 <div className="w-px h-10 bg-gray-100" />
                 <div className="text-center lg:text-left">
@@ -313,6 +314,9 @@ export default function Landing() {
           <p className="text-xs text-gray-400">© 2026 DentiScan AI · Proyek Sains Data - Kelompok 1</p>
         </div>
       </footer>
+
+      {/* CHATBOT: Panggil di sini agar muncul di halaman Landing */}
+      <ChatWidget /> 
     </div>
   );
 }

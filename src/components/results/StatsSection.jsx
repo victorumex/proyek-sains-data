@@ -22,7 +22,7 @@ export default function StatsSection({ data }) {
           >
             {data.totalDetected}
           </motion.div>
-          <p className="text-xs text-red-400 mt-1">dari {data.teeth.length} gigi dianalisis</p>
+          <p className="text-xs text-red-400 mt-1">area karies pada foto</p>
         </div>
 
         {/* Avg confidence */}

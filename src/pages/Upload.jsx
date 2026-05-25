@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
@@ -63,12 +64,24 @@ export default function Upload() {
     setError(null);
   };
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     setAnalyzing(true);
-    setTimeout(() => {
+    const formData = new FormData();
+    
+    // Ambil file asli dari input/kamera
+    const responseBlob = await fetch(preview);
+    const blob = await responseBlob.blob();
+    formData.append('file', blob, 'image.jpg');
+
+    try {
+      const res = await axios.post('http://127.0.0.1:8000/predict', formData);
+      // KIRIM HASILNYA KE HALAMAN RESULTS
+      navigate("/results", { state: { resultData: res.data } });
+    } catch (err) {
+      setError("Gagal menghubungi server AI.");
+    } finally {
       setAnalyzing(false);
-      navigate("/results");
-    }, 2500);
+    }
   };
 
   return (
