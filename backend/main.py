@@ -5,6 +5,16 @@ import cv2
 import numpy as np
 import base64 # Tambahkan library ini untuk convert gambar crop
 from dotenv import load_dotenv
+
+# --- BYPASS KEAMANAN PYTORCH 2.6 UNTUK YOLO ---
+import torch
+_original_load = torch.load
+def _patched_load(*args, **kwargs):
+    kwargs['weights_only'] = False
+    return _original_load(*args, **kwargs)
+torch.load = _patched_load
+# ----------------------------------------------
+
 from ultralytics import YOLO
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
