@@ -3,8 +3,12 @@ import uuid
 import httpx
 import cv2
 import numpy as np
-import base64 # Tambahkan library ini untuk convert gambar crop
+import base64
 from dotenv import load_dotenv
+from ultralytics import YOLO
+from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+import google.generativeai as genai
 
 # --- BYPASS KEAMANAN PYTORCH 2.6 UNTUK YOLO ---
 import torch
@@ -15,41 +19,35 @@ def _patched_load(*args, **kwargs):
 torch.load = _patched_load
 # ----------------------------------------------
 
-from ultralytics import YOLO
-from fastapi import FastAPI, UploadFile, File, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-import google.generativeai as genai
-
-
-# 1. Load Environment & Model
+# 1. Load Environment & Model Dinamis (Solusi untuk Server Linux/Hugging Face)
 load_dotenv()
-model_path = r"C:\Users\Lenovo\OneDrive\ドキュメント\Python\.ipynb_checkpoints\Semester 6\Proyek Sains Data\base44\backend\model\yolov8s_caries.pt"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+model_path = os.path.join(BASE_DIR, "model", "yolov8s_caries.pt")
 model = YOLO(model_path)
 api_key = os.getenv("GEMINI_API_KEY")
 
-# 3. KONFIGURASI (Wajib paling atas sebelum pakai genai apapun)
+# 2. KONFIGURASI GEMINI
 if api_key:
     genai.configure(api_key=api_key)
     print("--- Konfigurasi API Key Berhasil ---")
 else:
     print("--- ERROR: API Key Tidak Ditemukan! Cek file .env Anda ---")
 
-# 4. Baru boleh List Models atau Inisialisasi Model
 try:
     print("Daftar Model yang Tersedia:")
     for m in genai.list_models():
         if 'generateContent' in m.supported_generation_methods:
             print(f"- {m.name}")
     
-    # Pilih model yang muncul di daftar tadi (biasanya models/gemini-1.5-flash)
+    # Pilih model yang muncul di daftar tadi
     model_chat = genai.GenerativeModel('gemini-2.5-flash')
 except Exception as e:
     print(f"Gagal inisialisasi AI: {e}")
 
-# 2. Inisialisasi APP
+# 3. Inisialisasi APP FastAPI
 app = FastAPI()
 
-# 3. Middleware CORS
+# 4. Middleware CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -109,10 +107,9 @@ async def upload_and_predict(file: UploadFile = File(...)):
             h = y2 - y1
 
             # 3. Potong (Crop) Gambar pakai OpenCV dari gambar asli (img)
-            # Format pemotongan OpenCV adalah img[y_start:y_end, x_start:x_end]
             crop_img = img[y1:y2, x1:x2]
 
-            # 4. Convert hasil crop ke Base64 (agar langsung tampil di frontend tanpa upload Supabase)
+            # 4. Convert hasil crop ke Base64 
             success_crop, buffer = cv2.imencode('.jpg', crop_img)
             if success_crop:
                 crop_b64 = base64.b64encode(buffer).decode('utf-8')

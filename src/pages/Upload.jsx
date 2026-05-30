@@ -74,7 +74,7 @@ export default function Upload() {
     formData.append('file', blob, 'image.jpg');
 
     try {
-      const res = await axios.post('http://127.0.0.1:8000/predict', formData);
+      const res = await axios.post('https://yizhar-dentiscan-api.hf.space/predict', formData);
       // KIRIM HASILNYA KE HALAMAN RESULTS
       navigate("/results", { state: { resultData: res.data } });
     } catch (err) {
