@@ -17,7 +17,7 @@ export default function ChatWidget() {
     setLoading(true);
 
     try {
-      const res = await axios.post("http://127.0.0.1:8000/chat", { message: input });
+      const res = await axios.post("https://yizhar-dentiscan-api.hf.space/chat", { message: input });
       setMessages(prev => [...prev, { role: "ai", text: res.data.reply }]);
     } catch (error) {
       setMessages(prev => [...prev, { role: "ai", text: "Maaf, saya sedang mengalami gangguan." }]);
