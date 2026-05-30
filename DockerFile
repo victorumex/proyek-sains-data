@@ -1,0 +1,19 @@
+FROM python:3.12-slim
+
+# 1. Install dependensi sistem yang dibutuhkan oleh OpenCV
+RUN apt-get update && apt-get install -y \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# 2. Copy requirements dan install semua library Python
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 3. Copy seluruh source code backend ke dalam container
+COPY . .
+
+# 4. Hugging Face mewajibkan server berjalan di port 7860
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
