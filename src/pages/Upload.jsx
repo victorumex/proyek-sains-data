@@ -22,20 +22,25 @@ export default function Upload() {
     setMode("preview");
   };
 
-  const handleOpenCamera = async () => {
+const handleOpenCamera = async () => {
     setError(null);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: { ideal: "environment" } }, 
+        audio: false 
+      });
+      
       setCameraStream(stream);
       setMode("camera");
       setTimeout(() => {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.play();
+          videoRef.current.play().catch(e => console.error("Video play error:", e));
         }
-      }, 100);
+      }, 150);
     } catch (err) {
-      setError("Kamera tidak dapat diakses. Silakan coba unggah dari galeri.");
+      console.error("Detail Eror Kamera:", err); // Agar eror aslinya terlihat di Inspect Element
+      setError("Kamera tidak dapat diakses. Pastikan browser diizinkan mengakses kamera.");
     }
   };
 
