@@ -23,25 +23,19 @@ export default function Upload() {
   };
 
 const handleOpenCamera = async () => {
-    setError(null);
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: { ideal: "environment" } }, 
-        audio: false 
-      });
-      
-      setCameraStream(stream);
-      setMode("camera");
-      setTimeout(() => {
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.play().catch(e => console.error("Video play error:", e));
-        }
-      }, 150);
-    } catch (err) {
-      console.error("Detail Eror Kamera:", err); // Agar eror aslinya terlihat di Inspect Element
-      setError("Kamera tidak dapat diakses. Pastikan browser diizinkan mengakses kamera.");
-    }
+  setError(null);
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: { ideal: "environment" } }, 
+      audio: false 
+    });
+    setCameraStream(stream);
+    setMode("camera");
+    // HAPUS setTimeout sepenuhnya dari sini!
+  } catch (err) {
+    console.error(err);
+    setError("Kamera tidak dapat diakses. Silakan coba unggah dari galeri.");
+  }
   };
 
   const handleCapture = () => {
@@ -195,7 +189,18 @@ const handleOpenCamera = async () => {
                 className="bg-black rounded-3xl overflow-hidden shadow-2xl"
               >
                 <div className="relative">
-                  <video ref={videoRef} className="w-full aspect-[4/3] object-cover" playsInline />
+                  <video 
+                    autoPlay 
+                    playsInline 
+                    muted 
+                    className="w-full aspect-[4/3] object-cover bg-black"
+                    ref={(el) => {
+                      videoRef.current = el; // Simpan referensi untuk fitur 'capture'
+                      if (el && cameraStream && el.srcObject !== cameraStream) {
+                        el.srcObject = cameraStream; // Otomatis tembak stream tanpa delay
+                      }
+                    }}
+                  />
                   {/* Scan overlay */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="w-4/5 h-3/4 border-2 border-dental-green/60 rounded-2xl relative">
