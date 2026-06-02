@@ -40,6 +40,11 @@ export default function Upload() {
     }
   };
 
+  const handleOpenCamera = () => {
+    setFacingMode("environment");
+    startCamera("environment");
+  };
+
   const handleToggleCamera = () => {
     // Matikan stream lama sampai tuntas
     if (cameraStream) {
