@@ -72,24 +72,24 @@ export default function Upload() {
   };
 
   const handleCapture = () => {
-    const canvas = document.createElement("canvas");
-    const video = videoRef.current;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    
-    const ctx = canvas.getContext("2d");
-    
-    // Jika kamera depan, balikkan kanvas agar hasil jepretan tidak terbalik (mirror)
-    if (facingMode === "user") {
-      ctx.translate(canvas.width, 0);
-      ctx.scale(-1, 1);
-    }
-    
-    ctx.drawImage(video, 0, 0);
-    const url = canvas.toDataURL("image/jpeg");
-    setPreview(url);
-    stopCamera();
-    setMode("preview");
+  const canvas = document.createElement("canvas");
+  const video = videoRef.current;
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  const ctx = canvas.getContext("2d");
+
+  ctx.translate(canvas.width, 0);
+  ctx.scale(-1, 1);
+
+  ctx.drawImage(video, 0, 0);
+
+  const url = canvas.toDataURL("image/jpeg");
+
+  setPreview(url);
+  stopCamera();
+  setMode("preview");
   };
 
   const stopCamera = () => {
@@ -237,7 +237,7 @@ export default function Upload() {
                     playsInline 
                     muted 
                     className="w-full aspect-[4/3] object-cover bg-black"
-                    style={{ transform: facingMode === "user" ? "scaleX(-1)" : "scaleX(1)" }} 
+                    style={{ transform: "scaleX(-1)" }}
                     ref={(el) => {
                       videoRef.current = el; 
                       if (el && cameraStream && el.srcObject !== cameraStream) {
