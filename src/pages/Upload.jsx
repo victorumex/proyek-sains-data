@@ -26,17 +26,27 @@ export default function Upload() {
   const startCamera = async (targetMode) => {
     setError(null);
     try {
-      // Gunakan pengaturan langsung tanpa 'ideal' agar HP lebih patuh
+      // Lepas paksa ikatan video lama di browser HP
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
+
+      // Konfigurasi khusus: HP kadang menolak jika formatnya tidak spesifik
+      const videoConstraints = targetMode === "user" 
+        ? { facingMode: "user" } 
+        : { facingMode: { ideal: "environment" } };
+
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: targetMode }, 
+        video: videoConstraints, 
         audio: false 
       });
+      
+      setFacingMode(targetMode); // Pastikan state diperbarui
       setCameraStream(stream);
-      setFacingMode(targetMode); // Update state hanya jika sukses
       setMode("camera");
     } catch (err) {
-      console.error(err);
-      setError("Kamera tidak dapat diakses. Silakan coba unggah dari galeri.");
+      console.error("Error Kamera:", err);
+      setError("Kamera tidak dapat diakses. Periksa izin browser Anda.");
     }
   };
 
@@ -46,18 +56,19 @@ export default function Upload() {
   };
 
   const handleToggleCamera = () => {
-    // Matikan stream lama sampai tuntas
-    if (cameraStream) {
-      cameraStream.getTracks().forEach(t => t.stop());
-      setCameraStream(null);
-    }
-    
+    // 1. Tentukan target kamera berikutnya
     const nextMode = facingMode === "environment" ? "user" : "environment";
     
-    // Beri jeda 300ms agar hardware kamera HP benar-benar mati sebelum nyala lagi
+    // 2. Matikan paksa hardware kamera yang sedang menyala
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(t => t.stop());
+    }
+    setCameraStream(null);
+    
+    // 3. Beri waktu 500ms agar hardware HP "bernapas", lalu nyalakan kamera baru
     setTimeout(() => {
       startCamera(nextMode);
-    }, 300);
+    }, 500);
   };
 
   const handleCapture = () => {
@@ -83,7 +94,7 @@ export default function Upload() {
 
   const stopCamera = () => {
     if (cameraStream) {
-      cameraStream.getTracks().forEach(t => t.stop());
+      cameraStream.getTracks().forEach(track => track.stop());
       setCameraStream(null);
     }
   };
@@ -221,7 +232,6 @@ export default function Upload() {
                 className="bg-black rounded-3xl overflow-hidden shadow-2xl relative"
               >
                 <div className="relative">
-                  {/* LOGIKA MIRROR HANYA UNTUK KAMERA DEPAN */}
                   <video 
                     autoPlay 
                     playsInline 
