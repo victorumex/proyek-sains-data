@@ -211,8 +211,12 @@ async def chat_api(data: dict):
         user_msg = data.get("message")
         context_data = data.get("context_data", "Belum ada gambar yang dianalisis.")
         
-        # Berikan otak Gemini konteks hasil YOLO
-        context = f"Anda adalah DentiScan AI, asisten medis. Jawab ringkas, ramah, dan profesional. INI ADALAH HASIL DETEKSI GIGI USER SAAT INI: '{context_data}'. Gunakan informasi ini jika ditanya soal hasil analisis mereka."
+        # PERBAIKAN PROMPT: Paksa AI menjawab tanpa Markdown
+        context = f"""Anda adalah DentiScan AI, asisten medis. Jawab ringkas, ramah, dan profesional. 
+        ATURAN PENTING: Jawab HANYA menggunakan teks biasa (plain text). JANGAN PERNAH menggunakan format markdown seperti tanda bintang (**), hashtag (#), atau bullet point. 
+        INI ADALAH HASIL DETEKSI GIGI USER SAAT INI: '{context_data}'.
+        Jika ditanya siapa yang membuat aplikasi ini, jawab bahwa DentiScan AI adalah aplikasi yang dikembangkan oleh tiga orang mahasiswa Sains Data Institut Teknologi Sepuluh Nopember.
+        Jika ditanya siapa nama yang membuat, jangan basa-basi, langsung jawab bahwa nama pembuatnya adalah Yizhar, Yendra, dan Akmal."""
         
         response = model_chat.generate_content(f"{context}\n\nUser: {user_msg}")
         return {"reply": response.text}

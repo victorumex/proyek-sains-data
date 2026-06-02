@@ -23,14 +23,16 @@ export default function Upload() {
     setMode("preview");
   };
 
-  const startCamera = async (mode) => {
+  const startCamera = async (targetMode) => {
     setError(null);
     try {
+      // Gunakan pengaturan langsung tanpa 'ideal' agar HP lebih patuh
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: { ideal: mode } }, 
+        video: { facingMode: targetMode }, 
         audio: false 
       });
       setCameraStream(stream);
+      setFacingMode(targetMode); // Update state hanya jika sukses
       setMode("camera");
     } catch (err) {
       console.error(err);
@@ -38,27 +40,36 @@ export default function Upload() {
     }
   };
 
-  const handleOpenCamera = () => {
-    setFacingMode("environment");
-    startCamera("environment");
-  };
-
   const handleToggleCamera = () => {
-    // Matikan stream kamera yang sedang menyala sebelum pindah
+    // Matikan stream lama sampai tuntas
     if (cameraStream) {
       cameraStream.getTracks().forEach(t => t.stop());
+      setCameraStream(null);
     }
-    // Tukar mode
-    const newMode = facingMode === "environment" ? "user" : "environment";
-    setFacingMode(newMode);
-    startCamera(newMode);
+    
+    const nextMode = facingMode === "environment" ? "user" : "environment";
+    
+    // Beri jeda 300ms agar hardware kamera HP benar-benar mati sebelum nyala lagi
+    setTimeout(() => {
+      startCamera(nextMode);
+    }, 300);
   };
 
   const handleCapture = () => {
     const canvas = document.createElement("canvas");
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    canvas.getContext("2d").drawImage(videoRef.current, 0, 0);
+    const video = videoRef.current;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    
+    const ctx = canvas.getContext("2d");
+    
+    // Jika kamera depan, balikkan kanvas agar hasil jepretan tidak terbalik (mirror)
+    if (facingMode === "user") {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
+    
+    ctx.drawImage(video, 0, 0);
     const url = canvas.toDataURL("image/jpeg");
     setPreview(url);
     stopCamera();
