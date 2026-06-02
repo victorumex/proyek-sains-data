@@ -138,15 +138,17 @@ async def upload_and_predict(file: UploadFile = File(...)):
         success, encoded_img = cv2.imencode(".jpg", annotated)
         if not success:
             raise HTTPException(status_code=500, detail="Gagal meng-encode gambar anotasi")
+        
         annotated_bytes = encoded_img.tobytes()
 
         SUPABASE_URL = os.getenv("SUPABASE_URL")
         SUPABASE_KEY = os.getenv("SUPABASE_KEY")
         if not SUPABASE_URL or not SUPABASE_KEY:
-            raise HTTPException(status_code=500, detail="SUPABASE_URL atau SUPABASE_KEY tidak dikonfigurasi")
+            raise HTTPException(status_code=500, detail="Supabase belum dikonfigurasi")
 
         unique_name = f"{uuid.uuid4()}_{file.filename.replace(' ', '_')}"
-        storage_path = f"uploads/{unique_name}"
+        orig_path = f"uploads/original_{unique_name}"
+        annot_path = f"uploads/annotated_{unique_name}"
         bucket = "dental-images"
 
         headers = {
@@ -155,33 +157,41 @@ async def upload_and_predict(file: UploadFile = File(...)):
         }
 
         async with httpx.AsyncClient(timeout=30.0) as client:
-            storage_url = f"{SUPABASE_URL}/storage/v1/object/{bucket}/{storage_path}"
-            res_s = await client.post(
-                storage_url,
-                content=annotated_bytes,
+            # 1. Upload Gambar Original
+            await client.post(
+                f"{SUPABASE_URL}/storage/v1/object/{bucket}/{orig_path}",
+                content=file_content,
                 headers={**headers, "Content-Type": "image/jpeg"}
             )
             
-            if not res_s.is_success:
-                raise HTTPException(status_code=502, detail=f"Upload ke storage gagal: {res_s.status_code}")
+            # 2. Upload Gambar Hasil Analisis (Anotasi)
+            await client.post(
+                f"{SUPABASE_URL}/storage/v1/object/{bucket}/{annot_path}",
+                content=annotated_bytes,
+                headers={**headers, "Content-Type": "image/jpeg"}
+            )
 
-            public_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket}/{storage_path}"
-            db_url = f"{SUPABASE_URL}/rest/v1/dental_images"
-            db_data = {"original_name": file.filename, "image_url": public_url}
+            # Buat URL Publik
+            orig_public_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket}/{orig_path}"
+            annot_public_url = f"{SUPABASE_URL}/storage/v1/object/public/{bucket}/{annot_path}"
+
+            # 3. Simpan Kedua URL ke Database
+            db_data = {
+                "original_name": file.filename, 
+                "original_url": orig_public_url,
+                "annotated_url": annot_public_url
+            }
 
             res_db = await client.post(
-                db_url,
+                f"{SUPABASE_URL}/rest/v1/dental_images",
                 json=db_data,
                 headers={**headers, "Content-Type": "application/json"}
             )
 
-            if not res_db.is_success:
-                raise HTTPException(status_code=502, detail=f"Penyimpanan metadata gagal: {res_db.status_code}")
-
         # Kembalikan JSON ke React
         return {
             "status": "success",
-            "url": public_url,
+            "url": annot_public_url, # Frontend tetap pakai yang ada kotaknya
             "analysis": {
                 "overallSeverity": overall_sev,
                 "avgConfidence": avg_conf,
@@ -190,8 +200,6 @@ async def upload_and_predict(file: UploadFile = File(...)):
             }
         }
 
-    except HTTPException:
-        raise
     except Exception as e:
         print("ERROR:", str(e))
         raise HTTPException(status_code=500, detail="Terjadi kesalahan pada server")
@@ -201,15 +209,12 @@ async def upload_and_predict(file: UploadFile = File(...)):
 async def chat_api(data: dict):
     try:
         user_msg = data.get("message")
+        context_data = data.get("context_data", "Belum ada gambar yang dianalisis.")
         
-        # PERSINGKAT CONTEXT DI SINI
-        context = "Anda adalah DentiScan AI. Jawablah dengan sangat ringkas, ramah, dan langsung ke inti pertanyaan. Jangan buat penjelasan panjang lebar. Fokus pada jawaban yang membantu pengguna memahami hasil deteksi karies gigi mereka."
+        # Berikan otak Gemini konteks hasil YOLO
+        context = f"Anda adalah DentiScan AI, asisten medis. Jawab ringkas, ramah, dan profesional. INI ADALAH HASIL DETEKSI GIGI USER SAAT INI: '{context_data}'. Gunakan informasi ini jika ditanya soal hasil analisis mereka."
         
         response = model_chat.generate_content(f"{context}\n\nUser: {user_msg}")
         return {"reply": response.text}
     except Exception as e:
         return {"reply": "Maaf, sistem sedang sibuk."}
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)

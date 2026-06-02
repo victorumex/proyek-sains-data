@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { Camera, ImageUp, Scan, ArrowLeft, X, Check, AlertCircle } from "lucide-react";
+import { Camera, ImageUp, Scan, ArrowLeft, X, Check, AlertCircle, RefreshCw } from "lucide-react";
 
 export default function Upload() {
   const navigate = useNavigate();
@@ -13,6 +13,7 @@ export default function Upload() {
   const [cameraStream, setCameraStream] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState(null);
+  const [facingMode, setFacingMode] = useState("environment"); // default kamera belakang
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -22,20 +23,35 @@ export default function Upload() {
     setMode("preview");
   };
 
-const handleOpenCamera = async () => {
-  setError(null);
-  try {
-    const stream = await navigator.mediaDevices.getUserMedia({ 
-      video: { facingMode: { ideal: "environment" } }, 
-      audio: false 
-    });
-    setCameraStream(stream);
-    setMode("camera");
-    // HAPUS setTimeout sepenuhnya dari sini!
-  } catch (err) {
-    console.error(err);
-    setError("Kamera tidak dapat diakses. Silakan coba unggah dari galeri.");
-  }
+  const startCamera = async (mode) => {
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: { ideal: mode } }, 
+        audio: false 
+      });
+      setCameraStream(stream);
+      setMode("camera");
+    } catch (err) {
+      console.error(err);
+      setError("Kamera tidak dapat diakses. Silakan coba unggah dari galeri.");
+    }
+  };
+
+  const handleOpenCamera = () => {
+    setFacingMode("environment");
+    startCamera("environment");
+  };
+
+  const handleToggleCamera = () => {
+    // Matikan stream kamera yang sedang menyala sebelum pindah
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(t => t.stop());
+    }
+    // Tukar mode
+    const newMode = facingMode === "environment" ? "user" : "environment";
+    setFacingMode(newMode);
+    startCamera(newMode);
   };
 
   const handleCapture = () => {
@@ -74,7 +90,7 @@ const handleOpenCamera = async () => {
 
     try {
       const res = await axios.post('https://yizhar-dentiscan-api.hf.space/predict', formData);
-      // KIRIM HASILNYA KE HALAMAN RESULTS
+      localStorage.setItem("dentiscan_summary", res.data.analysis.summaryText);
       navigate("/results", { state: { resultData: res.data } });
     } catch (err) {
       setError("Gagal menghubungi server AI.");
@@ -186,21 +202,24 @@ const handleOpenCamera = async () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="bg-black rounded-3xl overflow-hidden shadow-2xl"
+                className="bg-black rounded-3xl overflow-hidden shadow-2xl relative"
               >
                 <div className="relative">
+                  {/* LOGIKA MIRROR HANYA UNTUK KAMERA DEPAN */}
                   <video 
                     autoPlay 
                     playsInline 
                     muted 
                     className="w-full aspect-[4/3] object-cover bg-black"
+                    style={{ transform: facingMode === "user" ? "scaleX(-1)" : "scaleX(1)" }} 
                     ref={(el) => {
-                      videoRef.current = el; // Simpan referensi untuk fitur 'capture'
+                      videoRef.current = el; 
                       if (el && cameraStream && el.srcObject !== cameraStream) {
-                        el.srcObject = cameraStream; // Otomatis tembak stream tanpa delay
+                        el.srcObject = cameraStream;
                       }
                     }}
                   />
+                  
                   {/* Scan overlay */}
                   <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                     <div className="w-4/5 h-3/4 border-2 border-dental-green/60 rounded-2xl relative">
@@ -210,6 +229,16 @@ const handleOpenCamera = async () => {
                       <div className="absolute bottom-0 right-0 w-6 h-6 border-b-3 border-r-3 border-dental-green rounded-br-lg" style={{ borderWidth: '3px' }} />
                     </div>
                   </div>
+
+                  {/* TOMBOL GANTI KAMERA (KIRI ATAS) */}
+                  <button
+                    onClick={handleToggleCamera}
+                    className="absolute top-4 left-4 w-9 h-9 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+
+                  {/* TOMBOL TUTUP KAMERA (KANAN ATAS) */}
                   <button
                     onClick={handleReset}
                     className="absolute top-4 right-4 w-9 h-9 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
@@ -217,6 +246,8 @@ const handleOpenCamera = async () => {
                     <X className="w-4 h-4" />
                   </button>
                 </div>
+                
+                {/* Tombol Jepret */}
                 <div className="p-6 flex justify-center">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
