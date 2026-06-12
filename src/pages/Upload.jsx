@@ -26,12 +26,10 @@ export default function Upload() {
   const startCamera = async (targetMode) => {
     setError(null);
     try {
-      // Lepas paksa ikatan video lama di browser HP
       if (videoRef.current) {
         videoRef.current.srcObject = null;
       }
 
-      // Konfigurasi khusus: HP kadang menolak jika formatnya tidak spesifik
       const videoConstraints = targetMode === "user" 
         ? { facingMode: "user" } 
         : { facingMode: { ideal: "environment" } };
@@ -41,7 +39,7 @@ export default function Upload() {
         audio: false 
       });
       
-      setFacingMode(targetMode); // Pastikan state diperbarui
+      setFacingMode(targetMode);
       setCameraStream(stream);
       setMode("camera");
     } catch (err) {
@@ -56,40 +54,40 @@ export default function Upload() {
   };
 
   const handleToggleCamera = () => {
-    // 1. Tentukan target kamera berikutnya
     const nextMode = facingMode === "environment" ? "user" : "environment";
     
-    // 2. Matikan paksa hardware kamera yang sedang menyala
     if (cameraStream) {
       cameraStream.getTracks().forEach(t => t.stop());
     }
     setCameraStream(null);
     
-    // 3. Beri waktu 500ms agar hardware HP "bernapas", lalu nyalakan kamera baru
     setTimeout(() => {
       startCamera(nextMode);
     }, 500);
   };
 
   const handleCapture = () => {
-  const canvas = document.createElement("canvas");
-  const video = videoRef.current;
+    const canvas = document.createElement("canvas");
+    const video = videoRef.current;
 
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
 
-  const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d");
 
-  ctx.translate(canvas.width, 0);
-  ctx.scale(-1, 1);
+    // Perbaikan: Hanya balik gambar (mirror) jika menggunakan kamera depan
+    if (facingMode === "user") {
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+    }
 
-  ctx.drawImage(video, 0, 0);
+    ctx.drawImage(video, 0, 0);
 
-  const url = canvas.toDataURL("image/jpeg");
+    const url = canvas.toDataURL("image/jpeg");
 
-  setPreview(url);
-  stopCamera();
-  setMode("preview");
+    setPreview(url);
+    stopCamera();
+    setMode("preview");
   };
 
   const stopCamera = () => {
@@ -110,7 +108,6 @@ export default function Upload() {
     setAnalyzing(true);
     const formData = new FormData();
     
-    // Ambil file asli dari input/kamera
     const responseBlob = await fetch(preview);
     const blob = await responseBlob.blob();
     formData.append('file', blob, 'image.jpg');
@@ -156,7 +153,6 @@ export default function Upload() {
           </motion.div>
 
           <AnimatePresence mode="wait">
-            {/* Initial choice */}
             {mode === null && (
               <motion.div
                 key="choice"
@@ -222,7 +218,6 @@ export default function Upload() {
               </motion.div>
             )}
 
-            {/* Camera view */}
             {mode === "camera" && (
               <motion.div
                 key="camera"
@@ -237,7 +232,8 @@ export default function Upload() {
                     playsInline 
                     muted 
                     className="w-full aspect-[4/3] object-cover bg-black"
-                    style={{ transform: "scaleX(-1)" }}
+                    /* Perbaikan: CSS Transform (Mirror) hanya aktif saat kamera depan digunakan */
+                    style={{ transform: facingMode === "user" ? "scaleX(-1)" : "none" }}
                     ref={(el) => {
                       videoRef.current = el; 
                       if (el && cameraStream && el.srcObject !== cameraStream) {
@@ -256,7 +252,7 @@ export default function Upload() {
                     </div>
                   </div>
 
-                  {/* TOMBOL GANTI KAMERA (KIRI ATAS) */}
+                  {/* TOMBOL GANTI KAMERA */}
                   <button
                     onClick={handleToggleCamera}
                     className="absolute top-4 left-4 w-9 h-9 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
@@ -264,7 +260,7 @@ export default function Upload() {
                     <RefreshCw className="w-4 h-4" />
                   </button>
 
-                  {/* TOMBOL TUTUP KAMERA (KANAN ATAS) */}
+                  {/* TOMBOL TUTUP KAMERA */}
                   <button
                     onClick={handleReset}
                     className="absolute top-4 right-4 w-9 h-9 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
@@ -285,7 +281,6 @@ export default function Upload() {
               </motion.div>
             )}
 
-            {/* Preview */}
             {mode === "preview" && (
               <motion.div
                 key="preview"
@@ -338,7 +333,6 @@ export default function Upload() {
             )}
           </AnimatePresence>
 
-          {/* Steps indicator */}
           {mode === null && (
             <div className="mt-8 flex items-center justify-center gap-6">
               {["Unggah Foto", "Analisis AI", "Lihat Hasil"].map((s, i) => (
