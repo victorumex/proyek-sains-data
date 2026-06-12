@@ -62,9 +62,6 @@ docker run -d -p 8000:8000 --name dentiscan-api -e GEMINI_API_KEY="ISI_GEMINI_AP
 Buka tab terminal atau PowerShell baru, lalu masuk ke direktori frontend proyek untuk menginstal dependensi interface serta menyalakan server lokal:
 
 ```bash
-# Masuk ke direktori frontend
-cd base44
-
 # Mengunduh semua dependensi package UI
 npm install
 
