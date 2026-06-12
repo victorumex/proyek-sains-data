@@ -2,7 +2,7 @@ import axios from 'axios';
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
-import { Camera, ImageUp, Scan, ArrowLeft, X, Check, AlertCircle, RefreshCw } from "lucide-react";
+import { Camera, ImageUp, Scan, ArrowLeft, X, Check, AlertCircle, RefreshCw, Zap, ZapOff } from "lucide-react";
 
 export default function Upload() {
   const navigate = useNavigate();
@@ -14,6 +14,10 @@ export default function Upload() {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState(null);
   const [facingMode, setFacingMode] = useState("environment"); // default kamera belakang
+  
+  // State baru untuk Flash
+  const [flashSupported, setFlashSupported] = useState(false);
+  const [flashOn, setFlashOn] = useState(false);
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -25,6 +29,9 @@ export default function Upload() {
 
   const startCamera = async (targetMode) => {
     setError(null);
+    setFlashOn(false); // Reset flash saat kamera menyala
+    setFlashSupported(false);
+
     try {
       if (videoRef.current) {
         videoRef.current.srcObject = null;
@@ -38,6 +45,13 @@ export default function Upload() {
         video: videoConstraints, 
         audio: false 
       });
+      
+      // Cek apakah kamera ini punya fitur Flash (Torch)
+      const track = stream.getVideoTracks()[0];
+      const capabilities = track.getCapabilities ? track.getCapabilities() : {};
+      if (capabilities.torch) {
+        setFlashSupported(true);
+      }
       
       setFacingMode(targetMode);
       setCameraStream(stream);
@@ -66,6 +80,21 @@ export default function Upload() {
     }, 500);
   };
 
+  // Fungsi Toggle Flash
+  const handleToggleFlash = async () => {
+    if (!cameraStream) return;
+    const track = cameraStream.getVideoTracks()[0];
+    
+    try {
+      await track.applyConstraints({
+        advanced: [{ torch: !flashOn }]
+      });
+      setFlashOn(!flashOn);
+    } catch (err) {
+      console.error("Gagal mengubah status flash:", err);
+    }
+  };
+
   const handleCapture = () => {
     const canvas = document.createElement("canvas");
     const video = videoRef.current;
@@ -75,7 +104,6 @@ export default function Upload() {
 
     const ctx = canvas.getContext("2d");
 
-    // Perbaikan: Hanya balik gambar (mirror) jika menggunakan kamera depan
     if (facingMode === "user") {
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
@@ -92,8 +120,14 @@ export default function Upload() {
 
   const stopCamera = () => {
     if (cameraStream) {
+      // Pastikan flash mati sebelum mematikan kamera
+      const track = cameraStream.getVideoTracks()[0];
+      if (flashOn && track) {
+        track.applyConstraints({ advanced: [{ torch: false }] }).catch(() => {});
+      }
       cameraStream.getTracks().forEach(track => track.stop());
       setCameraStream(null);
+      setFlashOn(false);
     }
   };
 
@@ -232,7 +266,6 @@ export default function Upload() {
                     playsInline 
                     muted 
                     className="w-full aspect-[4/3] object-cover bg-black"
-                    /* Perbaikan: CSS Transform (Mirror) hanya aktif saat kamera depan digunakan */
                     style={{ transform: facingMode === "user" ? "scaleX(-1)" : "none" }}
                     ref={(el) => {
                       videoRef.current = el; 
@@ -252,15 +285,31 @@ export default function Upload() {
                     </div>
                   </div>
 
-                  {/* TOMBOL GANTI KAMERA */}
-                  <button
-                    onClick={handleToggleCamera}
-                    className="absolute top-4 left-4 w-9 h-9 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                  </button>
+                  {/* Kumpulan Tombol Navigasi Kamera Kiri Atas */}
+                  <div className="absolute top-4 left-4 flex gap-2">
+                    <button
+                      onClick={handleToggleCamera}
+                      className="w-9 h-9 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                    </button>
 
-                  {/* TOMBOL TUTUP KAMERA */}
+                    {/* Tombol Flash - Hanya muncul jika didukung oleh hardware (biasanya kamera belakang) */}
+                    {flashSupported && (
+                      <button
+                        onClick={handleToggleFlash}
+                        className="w-9 h-9 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                      >
+                        {flashOn ? (
+                          <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400" />
+                        ) : (
+                          <ZapOff className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* TOMBOL TUTUP KAMERA (KANAN ATAS) */}
                   <button
                     onClick={handleReset}
                     className="absolute top-4 right-4 w-9 h-9 bg-black/50 rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
@@ -270,7 +319,7 @@ export default function Upload() {
                 </div>
                 
                 {/* Tombol Jepret */}
-                <div className="p-6 flex justify-center">
+                <div className="p-6 flex justify-center bg-black">
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -333,6 +382,7 @@ export default function Upload() {
             )}
           </AnimatePresence>
 
+          {/* Steps indicator */}
           {mode === null && (
             <div className="mt-8 flex items-center justify-center gap-6">
               {["Unggah Foto", "Analisis AI", "Lihat Hasil"].map((s, i) => (

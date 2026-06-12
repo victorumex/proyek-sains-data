@@ -22,7 +22,7 @@ torch.load = _patched_load
 # 1. Load Environment & Model Dinamis (Solusi untuk Server Linux/Hugging Face)
 load_dotenv()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-model_path = os.path.join(BASE_DIR, "model", "yolov8s_caries.pt")
+model_path = os.path.join(BASE_DIR, "model", "best_Yolo_balanced.pt")
 model = YOLO(model_path)
 api_key = os.getenv("GEMINI_API_KEY")
 
