@@ -105,6 +105,44 @@ http://localhost:5173
 ```
 
 ---
+## Panduan Deployment Cloud (Production)
+Untuk mempublikasikan aplikasi agar dapat diakses oleh publik secara online, kami menggunakan kombinasi Vercel untuk Frontend dan Hugging Face Spaces untuk Backend AI.
+
+### 1. Deployment Backend AI (Hugging Face Spaces)
+Hugging Face menyediakan layanan hosting gratis yang sangat cocok untuk model Machine Learning yang dibungkus dengan Docker.
+
+1. Buat akun dan login ke Hugging Face.
+2. Buat New Space baru. Beri nama Space Anda (misal: dentiscan-api), lalu pilih Docker sebagai Space SDK (pilih Blank template).
+3. Masuk ke tab Settings -> Variables and secrets, lalu tambahkan tiga variabel Secrets berikut:
+  - GEMINI_API_KEY = Isi dengan kredensial Anda.
+  - SUPABASE_URL = Isi dengan URL proyek Supabase Anda.
+  - SUPABASE_KEY = Isi dengan Anon Key Supabase Anda.
+4. Pada tab Files di Space tersebut, klik Add file -> *Create a new file*, beri nama Dockerfile, lalu tempelkan kode berikut untuk menarik image dari Docker Hub ke Hugging Face (pastikan port disesuaikan dengan standar Hugging Face yaitu 7860):
+
+```Dockerfile
+FROM yizharth/dentiscan-backend:v3
+   
+   # Mengekspos port standar yang diwajibkan oleh Hugging Face
+   EXPOSE 7860
+   
+   # Sesuaikan perintah ini dengan entry point aplikasi FastAPI Anda
+   # Contoh jika menggunakan uvicorn dan file utama adalah main.py:
+   CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
+```
+5. Hugging Face akan otomatis melakukan build dan menjalankan kontainer Anda. URL API Anda sekarang tersedia di https://<username>-dentiscan-api.hf.space.
+
+### 2. Deployment Frontend Web (Vercel)
+Setelah Backend Anda online, pastikan Anda mengubah URL API (base URL) di kode frontend Anda (misalnya di file .env atau konfigurasi Axios) untuk menunjuk ke tautan Hugging Face Space yang baru Anda buat, lalu push perubahan tersebut ke GitHub.
+
+1. Buat akun dan login ke Vercel.
+2. Klik **Add New Project** dan hubungkan akun GitHub Anda.
+3. Impor repositori proyek-sains-data.
+4. Pada menu konfigurasi proyek, biarkan pengaturan default Vite berjalan:
+  - Framework Preset: Vite
+  - Build Command: npm run build
+  - Output Directory: dist
+5. Klik Deploy. Vercel akan memproses proyek Anda dan memberikan URL web publik yang siap dibagikan.
+---
 
 ## Alur Penggunaan Fitur Utama di Aplikasi:
 1. **Landing Page:** Halaman orientasi awal mengenai dampak karies gigi global dan cara kerja skrining teknologi AI.
